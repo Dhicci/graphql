@@ -1,71 +1,76 @@
 body {
-background-color: #f7f7f7;
-color: #333;
-font: 1.2em 'Roboto', sans-serif;
+  background-color: black;
+  color: white;
+  font: 1vw Inconsolata, monospace;
 }
 
 svg {
-width: 100%;
-height: 400px;
+  width: auto;
+  height: auto;
+  max-width: 800px;
+  max-height: 400px;
 }
 
 text {
-fill: #333;
+  fill: white;
 }
 
 #user-info {
-padding: 20px;
-text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-size: 2vw;
+  padding: 50px;
 }
 
 #user-info table {
-margin: 0 auto;
-width: 80%;
-max-width: 800px;
-border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 500px;
 }
 
 .graph-container {
-text-align: center;
-padding: 50px;
+  text-align: center;
+  padding: 20px 50px;
 }
 
 .graph .labels.x-labels {
-text-anchor: start;
+  text-anchor: middle;
 }
 
 .graph .labels.y-labels {
-text-anchor: middle;
+  text-anchor: end;
 }
 
 .graph {
-width: 100%;
-height: 100%;
-overflow: visible;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
 }
 
 .graph .grid {
-stroke: #ccc;
-stroke-dasharray: 5;
-stroke-width: 0.5;
+  stroke: #ccc;
+  stroke-dasharray: 0;
+  stroke-width: 1;
 }
 
 .labels {
-font-size: 14px;
+  font-size: 13px;
 }
 
 .label-title {
-font-weight: bold;
-text-transform: uppercase;
-font-size: 12px;
-fill: #333;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 12px;
+  fill: black;
 }
 
 .data circle {
-fill: #5f9ea0;
+  fill: white;
 }
 
 .data line {
-stroke: #5f9ea0;
-stroke-width: 2;
+  stroke: white;
+  stroke-width: 1;
 }
