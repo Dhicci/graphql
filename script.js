@@ -5,7 +5,7 @@ const studObj = {
     level: 0,
     transactions: [],
     progresses: [],
-    completedProjects: [],
+    doneProjects: [],
 }
 
 const levelDiff = [];
@@ -22,7 +22,7 @@ const fetchGraphQL = async (query, variables) => {
     return await response.json()
 }
 
-const getUserInfo = async () => {
+const parseUserInfo = async () => {
     const obj = await fetchGraphQL(`
         query get_user($login: String) {
             user(where: {login: {_eq: $login}}) {
@@ -39,7 +39,7 @@ const getUserInfo = async () => {
     studObj.login = obj.data.user[0].login
 }
 
-const getTransactions = async () => {
+const parseTransactions = async () => {
     let offset = 0
 
     while (true) {
@@ -82,7 +82,7 @@ const getTransactions = async () => {
     )
 }
 
-const getProgresses = async () => {
+const parseProgresses = async () => {
     let offset = 0
 
     while (true) {
@@ -91,7 +91,7 @@ const getProgresses = async () => {
                 progress(
                     where: {
                         user: { login: { _eq: $login } }
-                        isCompleted: { _eq: true }
+                        isDone: { _eq: true }
                         object: { type: { _eq: "project" } }
                     }
                     distinct_on: objectId
@@ -120,7 +120,7 @@ const getProgresses = async () => {
     }
 }
 
-const getProjectsBaseXP = () => {
+const parseProjectsBaseXP = () => {
     studObj.transactions.forEach(transaction => {
         if (studObj.progresses.find(progress => progress.object.id == transaction.object.id)) {
             if (!projectsBaseXP[transaction.object.id]) {
@@ -132,28 +132,20 @@ const getProjectsBaseXP = () => {
     })
 }
 
-// Retrieve completed projects from student's transaction history
-const getCompletedProjects = () => {
-    // Loop through each transaction in the student's transaction history
+const parseDoneProjects = () => {
     studObj.transactions.forEach(transaction => {
-        // Retrieve the base XP for the project associated with the transaction, if it exists
         const projectBaseXP = projectsBaseXP[transaction.object.id]
 
-        // Check if the transaction amount matches the project's base XP
         if (projectsBaseXP && projectBaseXP == transaction.amount) {
-            // Update the student's total XP with the project's base XP
             studObj.totalXP += projectBaseXP
-            // Calculate the student's new level based on their total XP
             const newLevel = getLevelFromXp(studObj.totalXP)
 
-            // If the student has leveled up, update their level and add the level difference to the array
             if (newLevel > studObj.level) {
                 studObj.level = newLevel
                 levelDiff.push({ level: newLevel, date: new Date(transaction.createdAt) })
             }
 
-            // Add the completed project to the student's completed projects array
-            studObj.completedProjects.push({
+            studObj.doneProjects.push({
                 id: transaction.object.id,
                 name: transaction.object.name,
                 baseXP: projectBaseXP,
@@ -163,96 +155,88 @@ const getCompletedProjects = () => {
         }
     })
 
-    // Sort the completed projects array by date
-    studObj.completedProjects.sort((a, b) => a.date > b.date ? 1 : -1)
+    studObj.doneProjects.sort((a, b) => a.date > b.date ? 1 : -1)
 }
 
-// Calculate total XP needed for a given level
+// total xp needed for this level
 const totalXPForLevel = (level) => Math.round((level * 0.66 + 1) * ((level + 2) * 150 + 50))
 
-// Calculate cumulative XP needed to reach a given level
+// cumul of all the xp needed to reach this level
 const cumulXpForLevel = (level) => level > 0 ? totalXPForLevel(level) + cumulXpForLevel(level - 1) : 0
 
-// Get the level reached for a given amount of XP
+// level reached for this xp
 const getLevelFromXp = (xp, level = 0) => cumulXpForLevel(level) >= xp ? level : getLevelFromXp(xp, level + 1)
 
-// Get the first day of the month for a given date
+// get the first day of the month of a given date
 const getFirstDayOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1);
 
-// Get the first day of the next month for a given date
+// get the first day of the next month of a given date
 const getFirstDayOfNextMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 1);
 
-// Get all months between two given dates in MM/YY format
+// get all months between given dates in MM/YY format
 const getMonths = (fromDate, toDate) => {
     const fromYear = fromDate.getFullYear();
     const fromMonth = fromDate.getMonth();
     const toYear = toDate.getFullYear();
     const toMonth = toDate.getMonth();
     const months = [];
-    
     for (let year = fromYear; year <= toYear; year++) {
         let month = year === fromYear ? fromMonth : 0;
         const monthLimit = year === toYear ? toMonth : 11;
-        
         for (; month <= monthLimit; month++) {
-            // Add month to the array in MM/YY format
             months.push(
-                (month.toString().length == 1 ? '0' + (month + 1) : (month + 1)) // add leading zero if needed
+                (month.toString().length == 1 ? '0' + (month + 1) : (month + 1))
                 + '/' +
-                year.toString().substr(-2) // get the last two digits of the year
+                year.toString().substr(-2)
             )
         }
     }
-    
     return months;
 }
 
-
 // prepare graphs before drawing
 const fillGraphs = (xpOverTimeGraph, levelOverTimeGraph) => {
-    // Calculate first and last date of completed projects
-    const firstDate = getFirstDayOfMonth(studObj.completedProjects[0].date);
-    const lastDate = getFirstDayOfNextMonth(studObj.completedProjects[studObj.completedProjects.length - 1].date);
-    const firstAndLastDateDiff = lastDate.getTime() - firstDate.getTime();
+    const firstDate = getFirstDayOfMonth(studObj.doneProjects[0].date)
+    const lastDate = getFirstDayOfNextMonth(studObj.doneProjects[studObj.doneProjects.length - 1].date)
+    const firstAndLastDateDiff = lastDate.getTime() - firstDate.getTime()
 
-    // Get all the months between the first and last date
-    const months = getMonths(firstDate, lastDate);
+    const months = getMonths(firstDate, lastDate)
 
-    // Add labels for dates
+    // labels for dates
     for (let i = 0; i < months.length; i++) {
-    const x = (i / (months.length - 1) * xpOverTimeGraph.width) + xpOverTimeGraph.leftOffset;
-    const y = xpOverTimeGraph.height + 30;
-    const text = months[i];
-    const type = 'x-label';
+        const x = (i / (months.length - 1) * xpOverTimeGraph.width) + xpOverTimeGraph.leftOffset
+        const y = xpOverTimeGraph.height + 30
+        const text = months[i]
+        const type = 'x-label'
 
-    xpOverTimeGraph.labels.push({ x, y, text, type });
-    levelOverTimeGraph.labels.push({ x, y, text, type });
+        xpOverTimeGraph.labels.push({ x, y, text, type })
+        levelOverTimeGraph.labels.push({ x, y, text, type })
     }
-    
+
     // labels for xp of "xp over date" graph
     for (let i = 0; i <= 10; i++) {
         const x = xpOverTimeGraph.leftOffset * 0.8
         const y = (i == 0 ? 0 : xpOverTimeGraph.height * (i / 10)) + 5
         const text = (i == 10 ? 0 : Math.round(studObj.totalXP * (1 - (i / 10)))).toLocaleString()
         const type = 'y-label'
-    
+
         xpOverTimeGraph.labels.push({ x, y, text, type })
     }
-    
+
     // labels for levels of "level over date" graph
     for (let i = 0; i <= studObj.level; i++) {
         const x = levelOverTimeGraph.leftOffset * 0.8
         const y = (i == 0 ? levelOverTimeGraph.height : (levelOverTimeGraph.height * (1 - (i / studObj.level)))) + 5
         const text = i
         const type = 'y-label'
-    
+
         levelOverTimeGraph.labels.push({ x, y, text, type })
     }
-    
+
     // data for "xp over date" graph
-    for (let i = 1; i < studObj.completedProjects.length; i++) {
-        const curr = studObj.completedProjects[i]
-        const prev = studObj.completedProjects[i - 1]
+    for (let i = 1; i < studObj.doneProjects.length; i++) {
+        const curr = studObj.doneProjects[i]
+        const prev = studObj.doneProjects[i - 1]
 
         const x1 = (prev.date.getTime() - firstDate) / firstAndLastDateDiff * xpOverTimeGraph.width
         const x2 = (curr.date.getTime() - firstDate) / firstAndLastDateDiff * xpOverTimeGraph.width
@@ -262,86 +246,55 @@ const fillGraphs = (xpOverTimeGraph, levelOverTimeGraph) => {
 
         if (i == 1) {
             xpOverTimeGraph.data.push({
-                type: 'circle', 
-                cx: x1, 
-                cy: y1,
+                type: 'circle', cx: x1, cy: y1,
                 text: `0 → ${prev.totalXP.toLocaleString()} XP\n${prev.date.toLocaleDateString("en-GB")}`
             })
 
             xpOverTimeGraph.data.push({
                 type: 'line',
-                x1: 0, 
-                x2: x1,
-                y1: 0, 
-                y2: y1
+                x1: 0, x2: x1,
+                y1: 0, y2: y1
             })
         }
 
         xpOverTimeGraph.data.push({
-            type: 'circle', 
-            cx: x2, 
-            cy: y2,
+            type: 'circle', cx: x2, cy: y2,
             text: `${prev.totalXP.toLocaleString()} → ${curr.totalXP.toLocaleString()} XP\n${curr.date.toLocaleDateString("en-GB")}`
         })
 
-        xpOverTimeGraph.data.push({ 
-            type: 'line', 
-            x1: x1, 
-            x2: x2, 
-            y1: y1, 
-            y2: y2 
-        })
+        xpOverTimeGraph.data.push({ type: 'line', x1, x2, y1, y2 })
     }
 
-    // Data for "level over date" graph
-    const levelData = []
-
+    // data for "level over date" graph
     for (let i = 0; i < levelDiff.length - 1; i++) {
-    const curr = levelDiff[i]
-    const next = levelDiff[i + 1]
+        const curr = levelDiff[i]
+        const next = levelDiff[i + 1]
 
-    const x1 = (curr.date.getTime() - firstDate) / firstAndLastDateDiff * levelOverTimeGraph.width
-    const x2 = (next.date.getTime() - firstDate) / firstAndLastDateDiff * levelOverTimeGraph.width
+        const x1 = (curr.date.getTime() - firstDate) / firstAndLastDateDiff * levelOverTimeGraph.width
+        const x2 = (next.date.getTime() - firstDate) / firstAndLastDateDiff * levelOverTimeGraph.width
 
-    const y1 = (curr.level) / (studObj.level) * levelOverTimeGraph.height
-    const y2 = (next.level) / (studObj.level) * levelOverTimeGraph.height
+        const y1 = (curr.level) / (studObj.level) * levelOverTimeGraph.height
+        const y2 = (next.level) / (studObj.level) * levelOverTimeGraph.height
 
-    if (i === 0) {
-        levelData.push({
-        type: 'circle',
-        cx: x1,
-        cy: y1,
-        text: `0 → ${curr.level} level\n${curr.date.toLocaleDateString("en-GB")}`
+        if (i == 0) {
+            levelOverTimeGraph.data.push({
+                type: 'circle', cx: x1, cy: y1,
+                text: `0 → ${curr.level} level\n${curr.date.toLocaleDateString("en-GB")}`
+            })
+
+            levelOverTimeGraph.data.push({
+                type: 'line',
+                x1: 0, x2: x1,
+                y1: 0, y2: y1
+            })
+        }
+
+        levelOverTimeGraph.data.push({
+            type: 'circle', cx: x2, cy: y2,
+            text: `${curr.level} → ${next.level} level\n${next.date.toLocaleDateString("en-GB")}`
         })
 
-        levelData.push({
-        type: 'line',
-        x1: 0,
-        x2: x1,
-        y1: 0,
-        y2: y1
-        })
-    }
-
-    levelData.push({
-        type: 'circle',
-        cx: x2,
-        cy: y2,
-        text: `${curr.level} → ${next.level} level\n${next.date.toLocaleDateString("en-GB")}`
-    })
-
-    levelData.push({
-        type: 'line',
-        x1,
-        x2,
-        y1,
-        y2
-    })
-    }
-
-    // Add the data to the level over time graph
-    for (let i = 0; i < levelData.length; i++) {
-    levelOverTimeGraph.data.push(levelData[i])
+        levelOverTimeGraph.data.push({ type: 'line', x1, x2, y1, y2 })
     }
 }
 
@@ -434,12 +387,12 @@ const drawGraph = (graph) => {
 }
 
 const init = async () => {
-    await getUserInfo()
-    await getTransactions()
-    await getProgresses()
+    await parseUserInfo()
+    await parseTransactions()
+    await parseProgresses()
 
-    getProjectsBaseXP()
-    getCompletedProjects()
+    parseProjectsBaseXP()
+    parseDoneProjects()
 
     document.getElementById('login').innerText = `${studObj.login}`
     document.getElementById('id').innerText = `${studObj.id}`
