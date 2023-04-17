@@ -13,12 +13,9 @@
 <body>
     <div class="loginBox">
         <form id="loginboxbox" method="POST">                
-            <label>Username: </label><input type="text" id="username" name="username" value="{{with .Username}}{{.}}{{end}}" required>
+            <label>Username: </label><input type="text" id="username" name="username" required>
             <br><br>
-            <label>Password: </label> <input type="password" id="password" value="{{with .Password}}{{.}}{{end}}" name="password" required>
-            {{with .Errors.Password}}
-                <td class="invalid-feedback">{{.}}</td>
-            {{end}}
+            <label>Password: </label> <input type="password" id="password" name="password" required>
             <br><br>
             <input id="submitButton" class="forhover" onclick="loginUser()" type="submit" value="Login">
         </form>
