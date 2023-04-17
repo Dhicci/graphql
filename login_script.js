@@ -2,7 +2,7 @@ function loginUser(event) {
     event.preventDefault();
       var username = document.getElementById("username").value;
       var password = document.getElementById("password").value;
-  
+  console.log("funktsioon kutsuti");
   const headers = new Headers({
     "Content-Type": "application/json",
     "Authorization": "Basic " + btoa(`${username}:${password}`)
