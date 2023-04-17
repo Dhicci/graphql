@@ -13,7 +13,7 @@ function loginUser(event) {
     headers: headers,
   };
   
-  fetch(`http://localhost:3000/proxy`,options)
+  fetch(`https://dhicci.github.io/graphql`,options)
     .then(response => {
       if (response.ok) {
         console.log("response ok")
