@@ -6,28 +6,23 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="style.css">
-  <script src="script.js"></script>
+  <script src="login_script.js"></script>
   <title>My profile</title>
 </head>
 
-
 <body>
-  <div id="user-info">
-    <table>
-      <tr>
-        <th>LOGIN</th>
-        <th>ID</th>
-        <th>TOTAL XP</th>
-        <th>LEVEL</th>
-      </tr>
-      <tr>
-        <th id="login"></th>
-        <th id="id"></th>
-        <th id="total-xp"></th>
-        <th id="level"></th>
-      </tr>
-    </table>
-  </div>
+    <div class="loginBox">
+        <form id="loginboxbox" method="POST">                
+            <label>Username: </label><input type="text" id="username" name="username" value="{{with .Username}}{{.}}{{end}}" required>
+            <br><br>
+            <label>Password: </label> <input type="password" id="password" value="{{with .Password}}{{.}}{{end}}" name="password" required>
+            {{with .Errors.Password}}
+                <td class="invalid-feedback">{{.}}</td>
+            {{end}}
+            <br><br>
+            <input id="submitButton" class="forhover" type="submit" value="Login">
+        </form>
+    </div>
 </body>
 
 </html>
